@@ -20,9 +20,11 @@ namespace AzStorage.Tools.SasTokens
                 .WriteTo.LiterateConsole(outputTemplate: "{Message}{NewLine}")
                 .CreateLogger();
 
-            Log.Information("---------------------------------------------------------------------------------------");
-            Log.Information("AZURE storage SAS token generation tool. Version {Version}.", System.Reflection.Assembly.GetEntryAssembly().GetName().Version);
-            Log.Information("---------------------------------------------------------------------------------------");
+            Log.Information("======================================================================");
+            Log.Information("|                                                                    |");
+            Log.Information("|   AZURE storage SAS token generation tool. Version {Version}         |", System.Reflection.Assembly.GetEntryAssembly().GetName().Version);
+            Log.Information("|                                                                    |");
+            Log.Information("======================================================================");
             Log.Information("");
 
             var command = Command.None;
@@ -41,7 +43,7 @@ namespace AzStorage.Tools.SasTokens
                 syntax.DefineOption("a|account", ref accountName, "Storage account name");
                 syntax.DefineOption("k|key", ref accountKey, "Storage account key");
                 syntax.DefineOption("s|service", ref storageService, value => (StorageService)Enum.Parse(typeof(StorageService), value, true), "Storage service { queue | blob | table }");
-                syntax.DefineOption("p|policy", ref policyName, "Persitent SAS token policy name");
+                syntax.DefineOption("p|policy", ref policyName, "Persitent SAS token policy name. If policy isn't specified, an adhoc token will be generated.");
                 syntax.DefineOption("q|queue", ref queueName, "Queue name");
                 syntax.DefineOption("f|force", ref overwritePolicy, "Overwrite existing policy");
                 
