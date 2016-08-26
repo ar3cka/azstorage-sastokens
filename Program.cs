@@ -98,6 +98,32 @@ namespace AzStorage.Tools.SasTokens
             permissions.SharedAccessPolicies.Add(policyName, policy);
         }
 
+        private static string GeneratePersistentToken(
+            CloudQueue queue, 
+            string queueName, 
+            string policyName,
+            bool overwritePolicy)
+        {
+            var queuePermissions = queue.GetPermissionsAsync().Result;
+            if (CanAddNewPolicy(queuePermissions, policyName, overwritePolicy))
+            {
+                AddNewPolicyToPermissions(queuePermissions, policyName);
+                queue.SetPermissionsAsync(queuePermissions).Wait();
+            }
+            
+            return queue.GetSharedAccessSignature(null, policyName);
+        }
+
+        private static string GenerateAdhocToken(
+            CloudQueue queue)
+        {
+            var policy = new SharedAccessQueuePolicy();
+            policy.Permissions = SharedAccessQueuePermissions.ProcessMessages;
+            policy.SharedAccessExpiryTime = DateTimeOffset.MaxValue;
+            
+            return queue.GetSharedAccessSignature(policy);
+        }
+
         private static void GetSasToken(
             string accountName, 
             string accountKey, 
@@ -107,19 +133,25 @@ namespace AzStorage.Tools.SasTokens
         {
             var storageCredentials = new StorageCredentials(accountName, accountKey);
             var account = new CloudStorageAccount(storageCredentials, null, true);
-
-            Log.Information("Generating SAS token for {QueueName} queue with policy {PolicyName}...", queueName, policyName);
             var queueClient = account.CreateCloudQueueClient();
             var queue = queueClient.GetQueueReference(queueName);
+            var sasToken = string.Empty;
 
-            var queuePermissions = queue.GetPermissionsAsync().Result;
-            if (CanAddNewPolicy(queuePermissions, policyName, overwritePolicy))
+            if (string.IsNullOrEmpty(policyName))
             {
-                AddNewPolicyToPermissions(queuePermissions, policyName);
-                queue.SetPermissionsAsync(queuePermissions).Wait();
+                sasToken = GenerateAdhocToken(
+                    queue: queue);
             }
-            
-            var sasToken = queue.GetSharedAccessSignature(null, policyName);
+            else 
+            {
+                Log.Information("Generating SAS token for {QueueName} queue with policy {PolicyName}...", queueName, policyName);
+
+                sasToken = GeneratePersistentToken(
+                    queue: queue,
+                    queueName: queueName,
+                    policyName: policyName,
+                    overwritePolicy: overwritePolicy);
+            }
             
             Log.Information("Queue address   : {QueueAddress}.", queue.Uri);
             Log.Information("Queue SAS token : {SASToken}.", sasToken);
